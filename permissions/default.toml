@@ -1,0 +1,3 @@
+[default]
+description = "Default permissions for the apple-auth plugin"
+permissions = ["allow-start"]
