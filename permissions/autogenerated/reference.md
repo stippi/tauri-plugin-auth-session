@@ -1,6 +1,6 @@
 ## Default Permission
 
-Default permissions for the apple-auth plugin
+Default permissions for the auth-session plugin
 
 #### This default permission set includes the following:
 
@@ -18,7 +18,7 @@ Default permissions for the apple-auth plugin
 <tr>
 <td>
 
-`apple-auth:allow-start`
+`auth-session:allow-start`
 
 </td>
 <td>
@@ -31,7 +31,7 @@ Enables the start command without any pre-configured scope.
 <tr>
 <td>
 
-`apple-auth:deny-start`
+`auth-session:deny-start`
 
 </td>
 <td>
