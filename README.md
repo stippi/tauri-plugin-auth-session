@@ -1,27 +1,20 @@
-# tauri-plugin-apple-auth
+# tauri-plugin-auth-session
 
-Tauri v2 plugin wrapping Apple's [ASWebAuthenticationSession](https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession) for macOS and iOS.
+Tauri v2 plugin for in-app OAuth authentication on Apple and Android platforms.
 
-Presents an in-app authentication sheet instead of opening the system browser, satisfying **Apple App Store Guideline 4 (Design)**.
+- **macOS / iOS:** [ASWebAuthenticationSession](https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession)
+- **Android:** [Chrome Custom Tabs](https://developer.chrome.com/docs/android/custom-tabs)
 
 ## Platform Support
 
-| Platform | Status |
-|----------|--------|
-| macOS 10.15+ | Supported |
-| iOS 13+ | Supported |
-| Windows / Linux | Stub (returns error) |
-| Android | Stub (returns error) |
+| Platform | Mechanism | SSO |
+|----------|-----------|-----|
+| macOS 10.15+ | ASWebAuthenticationSession | Safari cookies |
+| iOS 13+ | ASWebAuthenticationSession | Safari cookies |
+| Android 7+ (API 24) | Chrome Custom Tabs | Chrome cookies |
+| Windows / Linux | Stub (returns error) | N/A |
 
-On non-Apple platforms the plugin registers without error but the `start` command returns an `Err`, so you don't need `#[cfg]` guards in your app setup.
-
-## Features
-
-- In-app auth sheet via ASWebAuthenticationSession (no system browser redirect)
-- Shares cookies with Safari for SSO and password manager support
-- Works with any OAuth 2.0 / OIDC provider (Keycloak, Auth0, etc.)
-- PKCE support (S256) — handle PKCE on the frontend, pass the final authorize URL
-- Proper cancellation handling (`"user_cancelled"` error)
+On unsupported platforms the plugin registers without error but the `start` command returns an `Err`.
 
 ## Installation
 
@@ -31,41 +24,53 @@ Add to your `src-tauri/Cargo.toml`:
 
 ```toml
 [dependencies]
-tauri-plugin-apple-auth = { git = "https://github.com/yanqianglu/tauri-plugin-apple-auth" }
+tauri-plugin-auth-session = { git = "https://github.com/yanqianglu/tauri-plugin-auth-session" }
 ```
 
-Register the plugin in your `src-tauri/src/lib.rs`:
+Register in `src-tauri/src/lib.rs`:
 
 ```rust
-fn main() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_apple_auth::init())
-        // ... other plugins
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
-}
+tauri::Builder::default()
+    .plugin(tauri_plugin_auth_session::init())
+    // ...
 ```
 
 ### Permissions
 
-Add the permission to your capability file (e.g., `src-tauri/capabilities/default.json`):
+Add to your capability file (e.g., `src-tauri/capabilities/default.json`):
 
 ```json
 {
-  "permissions": [
-    "apple-auth:default"
-  ]
+  "permissions": ["auth-session:default"]
 }
 ```
 
-### Frontend (TypeScript)
+### Android Setup
 
-You can either copy the invoke call directly or use the guest-js bindings:
+The plugin declares `AuthSessionActivity` in its own manifest. You must add an intent filter with your app's callback scheme in your `AndroidManifest.xml`:
+
+```xml
+<activity
+    android:name="app.tauri.auth_session.AuthSessionActivity"
+    android:exported="true"
+    tools:node="merge">
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <data android:scheme="myapp" />
+    </intent-filter>
+</activity>
+```
+
+Replace `myapp` with your app's custom URL scheme.
+
+## Usage
 
 ```typescript
 import { invoke } from "@tauri-apps/api/core";
 
-const callbackUrl = await invoke<string>("plugin:apple-auth|start", {
+const callbackUrl = await invoke<string>("plugin:auth-session|start", {
   authUrl: "https://your-idp.com/authorize?client_id=...&redirect_uri=...&code_challenge=...",
   callbackUrlScheme: "myapp",
 });
@@ -75,11 +80,11 @@ const callbackUrl = await invoke<string>("plugin:apple-auth|start", {
 Or with the guest-js package:
 
 ```typescript
-import { start } from "tauri-plugin-apple-auth-api";
+import { start } from "tauri-plugin-auth-session-api";
 
 const callbackUrl = await start(authorizeUrl, "myapp");
 
-// Use ephemeral mode (no SSO, no shared Safari cookies):
+// Apple-only: use ephemeral mode (no SSO, no shared cookies):
 const callbackUrl = await start(authorizeUrl, "myapp", { ephemeral: true });
 ```
 
@@ -87,28 +92,28 @@ const callbackUrl = await start(authorizeUrl, "myapp", { ephemeral: true });
 
 1. Your app builds an OAuth/OIDC authorize URL with PKCE parameters
 2. Call `start` with the URL and your app's custom URL scheme
-3. The plugin opens an ASWebAuthenticationSession (in-app auth sheet)
-4. User authenticates in the sheet
+3. The plugin opens an in-app auth session (ASWebAuthenticationSession on Apple, Chrome Custom Tab on Android)
+4. User authenticates
 5. The identity provider redirects to your custom scheme
 6. The plugin captures the redirect and returns the full callback URL
 7. Your app extracts the authorization code and exchanges it for tokens
 
 ## Error Handling
 
-The `start` command can return these errors:
-
 | Error | Meaning |
 |-------|---------|
-| `"user_cancelled"` | User dismissed the auth sheet |
+| `"user_cancelled"` | User dismissed the auth session |
 | `"Invalid auth URL: ..."` | The provided URL couldn't be parsed |
-| `"Auth session error: ..."` | ASWebAuthenticationSession reported an error |
-| `"ASWebAuthenticationSession is only available on Apple platforms (macOS / iOS)"` | Called on a non-Apple platform |
+| `"Auth session error: ..."` | Platform-specific error |
+| `"No browser available"` | No Custom Tabs-capable browser on Android |
+| `"Not available on this platform"` | Called on Windows/Linux |
 
 ## Notes
 
-- **`ephemeral`** option controls `prefersEphemeralWebBrowserSession`. When `false` (default), the session shares cookies with Safari for SSO and password manager autofill. Set to `true` for isolated sessions (e.g., multi-account support).
-- On **macOS**, ASWebAuthenticationSession opens a separate authentication window managed by the system — this is the expected behavior and passes App Store review.
+- **`ephemeral`** option controls `prefersEphemeralWebBrowserSession` on Apple. When `false` (default), the session shares cookies with Safari for SSO. Ignored on Android (Custom Tabs always share Chrome cookies).
+- On **macOS**, ASWebAuthenticationSession opens a system-managed authentication window.
 - On **iOS**, it presents a modal sheet anchored to the app's key window.
+- On **Android**, it opens a Chrome Custom Tab within the app. If Chrome is unavailable, falls back to the default browser.
 
 ## License
 
