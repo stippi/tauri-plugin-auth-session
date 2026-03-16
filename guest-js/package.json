@@ -1,11 +1,11 @@
 {
-  "name": "tauri-plugin-apple-auth-api",
-  "version": "0.1.0",
-  "description": "TypeScript bindings for tauri-plugin-apple-auth",
+  "name": "tauri-plugin-auth-session-api",
+  "version": "0.2.0",
+  "description": "TypeScript bindings for tauri-plugin-auth-session",
   "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yanqianglu/tauri-plugin-apple-auth"
+    "url": "https://github.com/yanqianglu/tauri-plugin-auth-session"
   },
   "type": "module",
   "main": "index.ts",

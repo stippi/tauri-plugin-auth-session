@@ -1,15 +1,15 @@
 [package]
-name = "tauri-plugin-apple-auth"
+name = "tauri-plugin-auth-session"
 version = "0.1.0"
-description = "Tauri v2 plugin wrapping Apple's ASWebAuthenticationSession for macOS and iOS"
+description = "Tauri v2 plugin for in-app OAuth authentication on Apple and Android platforms"
 authors = ["Yanqiang Lu"]
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/yanqianglu/tauri-plugin-apple-auth"
+repository = "https://github.com/yanqianglu/tauri-plugin-auth-session"
 edition = "2021"
 rust-version = "1.77"
-links = "tauri-plugin-apple-auth"
-keywords = ["tauri", "tauri-plugin", "apple", "authentication", "oauth"]
-categories = ["authentication", "gui", "os::macos"]
+links = "tauri-plugin-auth-session"
+keywords = ["tauri", "tauri-plugin", "authentication", "oauth", "custom-tabs"]
+categories = ["authentication", "gui"]
 
 [dependencies]
 tauri = { version = "2", features = [] }

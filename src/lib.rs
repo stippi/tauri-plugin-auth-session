@@ -1,13 +1,14 @@
-//! Tauri v2 plugin wrapping Apple's ASWebAuthenticationSession for macOS and iOS.
+//! Tauri v2 plugin for in-app OAuth authentication on Apple and Android platforms.
 //!
-//! Presents an in-app authentication sheet (managed by ASWebAuthenticationSession)
-//! instead of opening the system browser, satisfying Apple App Store Guideline 4 (Design).
+//! - **macOS / iOS:** ASWebAuthenticationSession (in-app auth sheet)
+//! - **Android:** Chrome Custom Tabs (in-app browser tab)
+//! - **Windows / Linux:** Returns an error (use a desktop OAuth plugin instead)
 //!
 //! # Usage
 //!
 //! ```rust,no_run
 //! tauri::Builder::default()
-//!     .plugin(tauri_plugin_apple_auth::init())
+//!     .plugin(tauri_plugin_auth_session::init())
 //!     .run(tauri::generate_context!())
 //!     .expect("error while running tauri application");
 //! ```
@@ -20,33 +21,42 @@ use tauri::{
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 mod apple;
 
+#[cfg(target_os = "android")]
+mod android;
+
+#[cfg(target_os = "android")]
+const PLUGIN_IDENTIFIER: &str = "app.tauri.auth_session";
+
+#[cfg(target_os = "android")]
+use tauri::{AppHandle, Manager};
+
+/// Holds the mobile plugin handle for Android IPC.
+#[cfg(target_os = "android")]
+struct MobilePluginHandle<R: Runtime>(tauri::plugin::PluginHandle<R>);
+
 /// Initialize the plugin.
-///
-/// On Apple platforms (macOS / iOS), this registers the `start` command which
-/// opens an ASWebAuthenticationSession. On other platforms the command returns
-/// an error indicating the API is unavailable.
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
-    Builder::new("apple-auth")
+    Builder::new("auth-session")
+        .setup(|app, api| {
+            #[cfg(target_os = "android")]
+            {
+                let handle = api.register_android_plugin(PLUGIN_IDENTIFIER, "AuthSessionPlugin")?;
+                app.manage(MobilePluginHandle(handle));
+            }
+            #[cfg(not(target_os = "android"))]
+            {
+                let _ = (app, api);
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![start])
         .build()
 }
 
 // ---------------------------------------------------------------------------
-// Apple implementation
+// Apple implementation (macOS + iOS)
 // ---------------------------------------------------------------------------
 
-/// Start an ASWebAuthenticationSession and return the callback URL.
-///
-/// # Arguments
-/// * `auth_url` — Full authorization URL (e.g., an OIDC authorize endpoint with PKCE params)
-/// * `callback_url_scheme` — Just the scheme portion (e.g., `"myapp"`), not a full URL
-/// * `ephemeral` — If `true`, the session won't share cookies with Safari (no SSO,
-///   no password manager autofill). Defaults to `false` if omitted.
-///
-/// # Returns
-/// * `Ok(callback_url)` — The full callback URL including query params (code, state, etc.)
-/// * `Err("user_cancelled")` — User dismissed the auth sheet
-/// * `Err(message)` — Other error
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 #[tauri::command]
 async fn start(
@@ -58,15 +68,31 @@ async fn start(
 }
 
 // ---------------------------------------------------------------------------
-// Non-Apple stub
+// Android implementation
 // ---------------------------------------------------------------------------
 
-#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+#[cfg(target_os = "android")]
+#[tauri::command]
+async fn start<R: Runtime>(
+    app: AppHandle<R>,
+    auth_url: String,
+    callback_url_scheme: String,
+    _ephemeral: Option<bool>,
+) -> Result<String, String> {
+    let handle = app.state::<MobilePluginHandle<R>>();
+    android::start_session(&handle.0, auth_url, callback_url_scheme).await
+}
+
+// ---------------------------------------------------------------------------
+// Stub (Windows / Linux)
+// ---------------------------------------------------------------------------
+
+#[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "android")))]
 #[tauri::command]
 async fn start(
     _auth_url: String,
     _callback_url_scheme: String,
     _ephemeral: Option<bool>,
 ) -> Result<String, String> {
-    Err("ASWebAuthenticationSession is only available on Apple platforms (macOS / iOS)".to_string())
+    Err("In-app auth sessions are only available on Apple and Android platforms".to_string())
 }
