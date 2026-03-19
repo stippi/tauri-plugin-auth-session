@@ -5,12 +5,33 @@
   "license": "(MIT OR Apache-2.0)",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yanqianglu/tauri-plugin-auth-session"
+    "url": "git+https://github.com/yanqianglu/tauri-plugin-auth-session.git"
   },
   "type": "module",
-  "main": "index.ts",
-  "types": "index.ts",
+  "main": "dist/index.cjs",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup index.ts --format esm,cjs --dts --clean",
+    "prepublishOnly": "npm run build"
+  },
   "peerDependencies": {
     "@tauri-apps/api": ">=2.0.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/api": "^2.10.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
   }
 }
