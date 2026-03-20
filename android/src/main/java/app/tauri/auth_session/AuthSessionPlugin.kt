@@ -26,7 +26,6 @@ class AuthSessionPlugin(private val activity: Activity) : Plugin(activity) {
 
         val intent = Intent(activity, AuthSessionActivity::class.java).apply {
             putExtra(AuthSessionActivity.EXTRA_AUTH_URL, args.authUrl)
-            putExtra(AuthSessionActivity.EXTRA_CALLBACK_SCHEME, args.callbackUrlScheme)
         }
 
         // Tauri's startActivityForResult passes the Invoke through to the

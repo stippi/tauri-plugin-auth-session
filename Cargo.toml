@@ -1,6 +1,6 @@
 [package]
 name = "tauri-plugin-auth-session"
-version = "0.1.0"
+version = "0.2.1"
 description = "Tauri v2 plugin for in-app OAuth authentication on Apple and Android platforms"
 authors = ["Yanqiang Lu"]
 license = "MIT OR Apache-2.0"

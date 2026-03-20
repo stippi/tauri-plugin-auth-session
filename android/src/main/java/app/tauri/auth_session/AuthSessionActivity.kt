@@ -81,7 +81,6 @@ class AuthSessionActivity : Activity() {
 
     companion object {
         const val EXTRA_AUTH_URL = "auth_url"
-        const val EXTRA_CALLBACK_SCHEME = "callback_scheme"
         const val EXTRA_CALLBACK_URL = "callback_url"
         const val EXTRA_ERROR = "error"
     }

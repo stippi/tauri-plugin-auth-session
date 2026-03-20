@@ -81,6 +81,8 @@ fn get_key_window_as_anchor() -> Retained<NSObject> {
     let app = UIApplication::sharedApplication(mtm);
     let scenes = app.connectedScenes();
     for scene in &scenes {
+        // Safety: In a Tauri iOS app all connected scenes are UIWindowScene.
+        // UIWindowScene is a subclass of UIScene so the pointer cast is valid.
         let scene_ptr: *const UIScene = &*scene;
         let ws: &UIWindowScene = unsafe { &*(scene_ptr as *const UIWindowScene) };
         let windows = ws.windows();
@@ -176,7 +178,7 @@ pub async fn start_session(
                     }
                 };
 
-                if let Some(tx) = tx_clone.lock().unwrap().take() {
+                if let Some(tx) = tx_clone.lock().ok().and_then(|mut g| g.take()) {
                     let _ = tx.send(result);
                 }
 
