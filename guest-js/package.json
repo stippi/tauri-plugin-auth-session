@@ -1,6 +1,6 @@
 {
   "name": "tauri-plugin-auth-session-api",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "TypeScript API for tauri-plugin-auth-session — in-app OAuth on macOS, iOS, and Android",
   "license": "(MIT OR Apache-2.0)",
   "repository": {

@@ -188,6 +188,16 @@ pub async fn start_session(
                 ACTIVE_SESSION.with(|s| {
                     *s.borrow_mut() = None;
                 });
+
+                // Bring the app back to the foreground on macOS.
+                // ASWebAuthenticationSession opens a separate browser window,
+                // and closing it doesn't restore focus to the originating app.
+                #[cfg(target_os = "macos")]
+                {
+                    let mtm = unsafe { MainThreadMarker::new_unchecked() };
+                    let app = NSApplication::sharedApplication(mtm);
+                    app.activateIgnoringOtherApps(true);
+                }
             });
 
         // Create the ASWebAuthenticationSession
