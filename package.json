@@ -1,0 +1,23 @@
+{
+  "name": "tauri-plugin-auth-session-api",
+  "version": "0.2.2",
+  "description": "TypeScript API for tauri-plugin-auth-session — in-app OAuth on macOS, iOS, and Android",
+  "license": "(MIT OR Apache-2.0)",
+  "type": "module",
+  "main": "./guest-js/dist/index.cjs",
+  "module": "./guest-js/dist/index.js",
+  "types": "./guest-js/dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./guest-js/dist/index.d.ts",
+      "import": "./guest-js/dist/index.js",
+      "require": "./guest-js/dist/index.cjs"
+    }
+  },
+  "files": [
+    "guest-js/dist"
+  ],
+  "peerDependencies": {
+    "@tauri-apps/api": ">=2.0.0"
+  }
+}
